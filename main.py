@@ -1,43 +1,40 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
+# main.py
 
-# Подключение Brave и ChromeDriver
-service = Service("driver/chromedriver-win64/chromedriver.exe")
-options = webdriver.ChromeOptions()
-options.binary_location = "C:/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe"
-options.add_argument("--headless")  # можно включить, когда отладим
+import argparse
+from parsing import parse_fkko_pages
+from processing import process_fkko
 
-driver = webdriver.Chrome(service=service, options=options)
+def main():
+    parser = argparse.ArgumentParser(description="FKKO Parser and Processor")
+    parser.add_argument("--parse", action="store_true", help="Скачать и распарсить данные с сайта")
+    parser.add_argument("--process", action="store_true", help="Обработать данные и создать Excel")
 
-all_kod = []
-all_name = []
+    args = parser.parse_args()
 
-# Парсинг всех 38 страниц
-for page in range(1, 39):
-    if page == 1:
-        url = "http://kod-fkko.ru/spisok-othodov/"
-    else:
-        url = f"http://kod-fkko.ru/spisok-othodov/page/{page}/"
+    if args.parse:
+        parse_fkko_pages()
+    if args.process:
+        process_fkko()
 
-    print(f"Парсинг страницы {page}...")
-    driver.get(url)
+    if not args.parse and not args.process:
+        print("Ничего не указано. Что будем делать?")
+        print("  p — только парсинг")
+        print("  o — только обработка")
+        print("  b — и парсинг, и обработка")
+        print("  q — выход")
+        choice = input("Выбор (p/o/b/q): ").strip().lower()
 
-    # Получаем коды и наименования
-    kod_elements = driver.find_elements(By.CLASS_NAME, "my_col1")
-    name_elements = driver.find_elements(By.CLASS_NAME, "my_col2")
+        if choice == "p":
+            parse_fkko_pages()
+        elif choice == "o":
+            process_fkko()
+        elif choice == "b":
+            parse_fkko_pages()
+            process_fkko()
+        elif choice == "q":
+            print("Выход.")
+        else:
+            print("Неизвестная команда. Завершение.")
 
-    for kod, name in zip(kod_elements, name_elements):
-        k = kod.text.strip()
-        n = name.text.strip()
-        if k and n:
-            all_kod.append(k)
-            all_name.append(n)
-
-# Запись результата в текстовый файл
-with open("fkko_full.txt", "w", encoding="utf-8") as f:
-    for k, n in zip(all_kod, all_name):
-        f.write(f"{k} - {n}\n")
-
-driver.quit()
-print("Готово. Сохранено в fkko_full.txt.")
+if __name__ == "__main__":
+    main()
